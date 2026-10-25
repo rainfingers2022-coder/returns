@@ -165,7 +165,20 @@ let items=[], tab='todo', busy=0, draft=null;
 /* ---------- dates ---------- */
 function todayISO(){return iso(new Date())}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
-function parse(s){const [y,m,d]=String(s).slice(0,10).split('-').map(Number);return new Date(y,m-1,d)}
+const MON={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function toISO(v){
+  // Accepts 2026-10-25, Google's "Sun Oct 25 2026 00:00:00 GMT+0000", 25/10/2026 or a Date. Returns 2026-10-25 or ''.
+  if(v==null||v==='')return'';
+  if(v instanceof Date)return isNaN(v)?'':iso(v);
+  const s=String(v).trim();let m;
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s)){const d=new Date(s);if(!isNaN(d)){if(d.getHours()>=12)d.setDate(d.getDate()+1);return iso(d)}}
+  if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))return m[1]+'-'+m[2].padStart(2,'0')+'-'+m[3].padStart(2,'0');
+  if((m=s.match(/([A-Za-z]{3})[a-z]*\s+(\d{1,2}),?\s+(\d{4})(?:\s+(\d{1,2}):)?/))&&MON[m[1].toLowerCase()]!=null){const d=new Date(+m[3],MON[m[1].toLowerCase()],+m[2]);if(m[4]&&+m[4]>=12)d.setDate(d.getDate()+1);return iso(d)}
+  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))return iso(new Date(+m[3],+m[2]-1,+m[1]));
+  const d=new Date(s);return isNaN(d)?'':iso(d);
+}
+function clean(it){return{...it,id:String(it.id),bought:toISO(it.bought)||todayISO(),deadline:toISO(it.deadline),days:String(it.days||'28'),buffer:String(it.buffer===''||it.buffer==null?'5':it.buffer),price:it.price==null?'':String(it.price),method:it.method==='post'?'post':'store',status:it.status||''}}
+function parse(s){const [y,m,d]=(toISO(s)||todayISO()).split('-').map(Number);return new Date(y,m-1,d)}
 function addDays(s,n){const d=parse(s);d.setDate(d.getDate()+n);return iso(d)}
 function diff(s){return Math.round((parse(s)-parse(todayISO()))/DAY)}
 function nice(s,short){const d=parse(s),o=short?{weekday:'long',day:'numeric',month:'long'}:{weekday:'long',day:'numeric',month:'long'};if(d.getFullYear()!==new Date().getFullYear())o.year='numeric';return d.toLocaleDateString('en-GB',o)}
@@ -173,7 +186,7 @@ function when(n){if(n===0)return'today';if(n===1)return'tomorrow';if(n===-1)retu
 function money(p){return p===''||p==null||isNaN(p)||Number(p)===0?'':'£'+Number(p).toFixed(2).replace(/\.00$/,'')}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
-function deadlineOf(it){return it.deadline?String(it.deadline).slice(0,10):addDays(it.bought,Number(it.days)||28)}
+function deadlineOf(it){return toISO(it.deadline)||addDays(it.bought,Number(it.days)||28)}
 function actByOf(it){const d=deadlineOf(it);return it.method==='post'?addDays(d,-(Number(it.buffer)||0)):d}
 function stateOf(it){if(it.status)return'done';const n=diff(actByOf(it));if(n<=3)return'urgent';if(n<=10)return'soon';return'later'}
 function verb(it){return it.method==='post'?'Post':'Take back'}
@@ -231,7 +244,7 @@ function closeSheet(){
 $('scrim').onclick=closeSheet;
 
 function openForm(it){
-  draft=it?{...it,deadline:it.deadline?String(it.deadline).slice(0,10):'',bought:String(it.bought).slice(0,10)}:
+  draft=it?clean(it):
     {id:'',name:'',shop:'',price:'',bought:todayISO(),days:'28',deadline:'',method:'store',buffer:'5',notes:'',status:''};
   const custom=!!draft.deadline||!WINDOWS.includes(Number(draft.days));
   const otherShop=draft.shop&&!SHOPS.includes(draft.shop);
@@ -347,7 +360,7 @@ async function load(){
   try{
     const r=await fetch(API_URL+'?key='+encodeURIComponent(API_KEY)+'&t='+Date.now());
     const j=await r.json(); if(!j.ok)throw new Error(j.error);
-    items=j.items; cache(); render(); syncState('ok');
+    items=(j.items||[]).map(clean); cache(); render(); syncState('ok');
   }catch(e){syncState('err');toast('Could not sync. Showing what is saved on this phone.')}
   finally{busy--}
 }
@@ -356,14 +369,14 @@ async function send(payload){
   try{
     const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({key:API_KEY,...payload})});
     const j=await r.json(); if(!j.ok)throw new Error(j.error);
-    items=j.items; cache(); render(); syncState('ok');
+    items=(j.items||[]).map(clean); cache(); render(); syncState('ok');
   }catch(e){syncState('err');toast('That change did not save. Check your signal and try again.')}
   finally{busy--}
 }
 function save(it){const i=items.findIndex(x=>x.id===it.id);if(i>=0)items[i]=it;else items.push(it);cache();render();return send({action:'save',item:it})}
 function remove(id){items=items.filter(x=>x.id!==id);cache();render();return send({action:'delete',id})}
 
-try{items=JSON.parse(localStorage.getItem('returns')||'[]')}catch(e){items=[]}
+try{items=JSON.parse(localStorage.getItem('returns')||'[]').map(clean)}catch(e){items=[]}
 render(); load();
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!busy)load()});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
