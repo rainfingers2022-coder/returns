@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f5f8b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Returns">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>House Sale Returns</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+/* Layout: one column. Add form, then a list sorted by "act by" date, like a stack of returns slips. */
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --ink:#18202b; --muted:#5c6675; --line:#dfe3ea;
+  --accent:#1f5f8b; --accent-ink:#ffffff;
+  --red:#b42318; --red-bg:#fdecea; --amber:#9a5b00; --amber-bg:#fff4dc; --green:#2e7d4f; --green-bg:#e7f5ec;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161d; --card:#19202a; --ink:#e7ebf1; --muted:#9aa5b4; --line:#2b3542;
+  --accent:#6fb3e0; --accent-ink:#0b1219;
+  --red:#ff8a80; --red-bg:#3a1a19; --amber:#f5c26b; --amber-bg:#352812; --green:#7fd3a0; --green-bg:#16301f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161d; --card:#19202a; --ink:#e7ebf1; --muted:#9aa5b4; --line:#2b3542;
+  --accent:#6fb3e0; --accent-ink:#0b1219;
+  --red:#ff8a80; --red-bg:#3a1a19; --amber:#f5c26b; --amber-bg:#352812; --green:#7fd3a0; --green-bg:#16301f; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body)}
+.wrap{max-width:720px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font:800 clamp(26px,6vw,36px)/1.05 var(--display);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0}
+.summary{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:600 13px var(--body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:var(--card)}
+.chip.red{background:var(--red-bg);color:var(--red);border-color:transparent}
+.chip.amber{background:var(--amber-bg);color:var(--amber);border-color:transparent}
+form{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px}
+form h2{font:600 18px var(--display);margin:0}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+label{display:grid;gap:4px;font-size:13px;font-weight:500;color:var(--muted);min-width:0}
+input,select,textarea{font:15px var(--body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;box-sizing:border-box}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.calc{font-size:13px;color:var(--muted)}
+.calc b{color:var(--ink);font-weight:600}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:600 14px var(--body);border-radius:8px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filters button{padding:6px 12px;font-size:13px;border-radius:999px}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{display:grid;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 14px 18px;display:grid;gap:8px;position:relative;overflow:hidden}
+.item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--line)}
+.item.overdue::before{background:var(--red)} .item.now::before{background:var(--red)} .item.soon::before{background:var(--amber)} .item.done::before{background:var(--green)}
+.item.done{opacity:.7}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.name{font-weight:600;font-size:16px;min-width:0;overflow-wrap:anywhere}
+.meta{color:var(--muted);font-size:13px}
+.pill{font:600 12px var(--body);padding:3px 9px;border-radius:999px;white-space:nowrap}
+.pill.overdue,.pill.now{background:var(--red-bg);color:var(--red)} .pill.soon{background:var(--amber-bg);color:var(--amber)}
+.pill.later{background:var(--bg);color:var(--muted);border:1px solid var(--line)} .pill.done{background:var(--green-bg);color:var(--green)}
+.dates{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px}
+.dates span b{font:500 13px var(--mono);color:var(--ink)}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.acts button{padding:6px 10px;font-size:13px}
+.confirm{color:var(--red)}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>House sale returns</h1>
+    <p class="sub" id="today"></p>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <form id="f" autocomplete="off">
+    <h2 id="formTitle">Add an item</h2>
+    <label>What is it?<input id="fName" required placeholder="e.g. Grey rug 160 x 230"></label>
+    <div class="row">
+      <label>Shop<input id="fShop" placeholder="e.g. Dunelm"></label>
+      <label>Price (£)<input id="fPrice" type="number" step="0.01" min="0" inputmode="decimal"></label>
+    </div>
+    <div class="row">
+      <label>Bought on<input id="fBought" type="date" required></label>
+      <label>Return window (days)<input id="fDays" type="number" min="1" value="28" inputmode="numeric"></label>
+      <label>Or exact last day<input id="fDeadline" type="date"></label>
+    </div>
+    <div class="row">
+      <label>Returning by<select id="fMethod"><option value="store">In store</option><option value="post">Post</option></select></label>
+      <label id="bufWrap">Post it this many days early<input id="fBuffer" type="number" min="0" value="5" inputmode="numeric"></label>
+    </div>
+    <label>Notes<input id="fNotes" placeholder="Receipt in email, keep box, etc."></label>
+    <p class="calc" id="calc"></p>
+    <div class="btns">
+      <button class="primary" type="submit" id="saveBtn">Add item</button>
+      <button type="button" id="cancelBtn" hidden>Cancel edit</button>
+    </div>
+  </form>
+
+  <div class="filters" id="filters">
+    <button type="button" data-f="todo" aria-pressed="true">To return</button>
+    <button type="button" data-f="done" aria-pressed="false">Returned or keeping</button>
+    <button type="button" data-f="all" aria-pressed="false">All</button>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="btns" style="align-items:center"><button type="button" id="refreshBtn">Refresh</button><span class="note" id="storeNote"></span></div>
+</div>
+
+<script>
+// ===== SET THIS ONE LINE: paste your Apps Script web app URL between the quotes =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbxCgT4ylm2oYdNyz1V_3aXxiUtIwIEay2CWzL6FDHu7CPkBIBmZ9WTbe88G17GPUYXhsA/exec';
+// ====================================================================================
+const API_KEY = '5VFVpb4I1Vy_dyU2BEfok22fiKSRkSEJ';
+
+const $=id=>document.getElementById(id);
+const DAY=86400000;
+let items=[], filter="todo", editing=null, confirmDel=null, busy=0;
+
+function todayISO(){const d=new Date();d.setHours(0,0,0,0);return iso(d)}
+function iso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function parse(s){const [y,m,d]=String(s).slice(0,10).split("-").map(Number);return new Date(y,m-1,d)}
+function addDays(s,n){const d=parse(s);d.setDate(d.getDate()+n);return iso(d)}
+function diff(s){return Math.round((parse(s)-parse(todayISO()))/DAY)}
+function nice(s){const d=parse(s);return d.toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:d.getFullYear()===new Date().getFullYear()?undefined:"numeric"})}
+function money(p){return p===""||p==null||isNaN(p)?"":"£"+Number(p).toFixed(2)}
+function rel(n){if(n===0)return"today";if(n===1)return"tomorrow";return n>0?"in "+n+" days":Math.abs(n)+" days ago"}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}
+
+function deadlineOf(it){return it.deadline||addDays(it.bought,Number(it.days)||28)}
+function actByOf(it){const d=deadlineOf(it);return it.method==="post"?addDays(d,-(Number(it.buffer)||0)):d}
+function stateOf(it){
+  if(it.status)return"done";
+  const n=diff(actByOf(it));
+  if(n<0)return"overdue"; if(n<=3)return"now"; if(n<=10)return"soon"; return"later";
+}
+function label(it,st){
+  const n=diff(actByOf(it)), verb=it.method==="post"?"Post":"Return";
+  if(st==="done")return it.status==="kept"?"Keeping":"Returned";
+  if(st==="overdue")return(it.method==="post"&&diff(deadlineOf(it))>=0)?"Post now, cutting it fine":"Past the date";
+  return verb+" "+rel(n);
+}
+
+function render(){
+  $("today").textContent="Today is "+nice(todayISO());
+  const todo=items.filter(i=>!i.status);
+  const urgent=todo.filter(i=>["overdue","now"].includes(stateOf(i))).length;
+  const soon=todo.filter(i=>stateOf(i)==="soon").length;
+  const val=todo.reduce((a,i)=>a+(Number(i.price)||0),0);
+  $("summary").innerHTML=
+    `<span class="chip">${todo.length} to return${val?", "+money(val):""}</span>`+
+    (urgent?`<span class="chip red">${urgent} need action in the next 3 days</span>`:"")+
+    (soon?`<span class="chip amber">${soon} due within 10 days</span>`:"");
+
+  let list=items.filter(i=>filter==="all"||(filter==="done"?i.status:!i.status));
+  list.sort((a,b)=>(!!a.status-!!b.status)||actByOf(a).localeCompare(actByOf(b)));
+  if(!list.length){
+    $("list").innerHTML=`<div class="empty">${items.length?"Nothing in this view.":"No items yet. Add the first thing you bought using the form above, and it will appear here sorted by the date you need to act."}</div>`;
+    return;
+  }
+  $("list").innerHTML=list.map(it=>{
+    const st=stateOf(it), dl=deadlineOf(it), ab=actByOf(it);
+    const metaBits=[it.shop,money(it.price),it.method==="post"?"By post":"In store"].filter(Boolean).map(esc).join(", ");
+    return `<div class="item ${st}">
+      <div class="top"><div class="name">${esc(it.name)}</div><span class="pill ${st}">${esc(label(it,st))}</span></div>
+      <div class="meta">${metaBits}${it.notes?"<br>"+esc(it.notes):""}</div>
+      <div class="dates">
+        ${it.method==="post"?`<span>Post by <b>${nice(ab)}</b></span>`:""}
+        <span>Last day <b>${nice(dl)}</b></span>
+        <span>Bought <b>${nice(it.bought)}</b></span>
+      </div>
+      <div class="acts">
+        ${it.status?`<button data-a="undo" data-id="${it.id}">Move back to returns</button>`:
+          `<button data-a="returned" data-id="${it.id}">Returned</button><button data-a="kept" data-id="${it.id}">Keeping it</button>`}
+        <button data-a="edit" data-id="${it.id}">Edit</button>
+        ${confirmDel===it.id?`<button class="confirm" data-a="del2" data-id="${it.id}">Tap again to delete</button>`:`<button data-a="del" data-id="${it.id}">Delete</button>`}
+      </div>
+    </div>`}).join("");
+}
+
+function status(msg){$("storeNote").textContent=msg}
+function cache(){try{localStorage.setItem("returns",JSON.stringify(items))}catch(e){}}
+
+async function load(){
+  if(!API_URL){status("Not connected yet. Add your web app link to index.html.");return}
+  busy++; status("Syncing...");
+  try{
+    const r=await fetch(API_URL+"?key="+encodeURIComponent(API_KEY)+"&t="+Date.now());
+    const j=await r.json(); if(!j.ok)throw new Error(j.error);
+    items=j.items; cache(); render(); status("Up to date, "+new Date().toLocaleTimeString("en-GB",{hour:"numeric",minute:"2-digit",hour12:true}).replace(" "," "));
+  }catch(e){status("Could not reach the list. Showing what was last saved on this phone.")}
+  finally{busy--}
+}
+async function send(payload){
+  if(!API_URL){status("Not connected yet, change not saved.");return}
+  busy++; status("Saving...");
+  try{
+    const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:API_KEY,...payload})});
+    const j=await r.json(); if(!j.ok)throw new Error(j.error);
+    items=j.items; cache(); render(); status("Saved");
+  }catch(e){status("That change did not save. Check your signal and try again.")}
+  finally{busy--}
+}
+function save(it){const i=items.findIndex(x=>x.id===it.id);if(i>=0)items[i]=it;else items.push(it);render();return send({action:"save",item:it})}
+function remove(id){items=items.filter(x=>x.id!==id);render();return send({action:"delete",id})}
+
+function updateCalc(){
+  const it=readForm(); $("bufWrap").hidden=it.method!=="post";
+  if(!it.bought){$("calc").textContent="";return}
+  $("calc").innerHTML=`Last day to return: <b>${nice(deadlineOf(it))}</b>`+(it.method==="post"?`. Post by <b>${nice(actByOf(it))}</b>`:"");
+}
+function readForm(){return{name:$("fName").value.trim(),shop:$("fShop").value.trim(),price:$("fPrice").value,bought:$("fBought").value,days:$("fDays").value,deadline:$("fDeadline").value,method:$("fMethod").value,buffer:$("fBuffer").value,notes:$("fNotes").value.trim()}}
+function resetForm(){$("f").reset();$("fBought").value=todayISO();$("fDays").value=28;$("fBuffer").value=5;editing=null;$("formTitle").textContent="Add an item";$("saveBtn").textContent="Add item";$("cancelBtn").hidden=true;updateCalc()}
+
+$("f").addEventListener("input",updateCalc);
+$("fDays").addEventListener("input",()=>{$("fDeadline").value="";updateCalc()});
+$("f").addEventListener("submit",e=>{
+  e.preventDefault();
+  const it=readForm(); if(!it.name||!it.bought)return;
+  it.id=editing||("i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6));
+  const old=items.find(x=>x.id===it.id); it.status=old?old.status||"":"";
+  resetForm(); save(it);
+});
+$("cancelBtn").onclick=resetForm;
+$("refreshBtn").onclick=load;
+$("filters").onclick=e=>{const b=e.target.closest("button");if(!b)return;filter=b.dataset.f;[...$("filters").children].forEach(x=>x.setAttribute("aria-pressed",x===b));render()};
+$("list").onclick=e=>{
+  const b=e.target.closest("button[data-a]");if(!b)return;
+  const it=items.find(x=>x.id===b.dataset.id);if(!it)return;
+  const a=b.dataset.a; if(a!=="del")confirmDel=null;
+  if(a==="returned"||a==="kept")save({...it,status:a});
+  else if(a==="undo")save({...it,status:""});
+  else if(a==="del"){confirmDel=it.id;render()}
+  else if(a==="del2"){confirmDel=null;remove(it.id)}
+  else if(a==="edit"){
+    editing=it.id;$("fName").value=it.name;$("fShop").value=it.shop||"";$("fPrice").value=it.price||"";$("fBought").value=String(it.bought).slice(0,10);
+    $("fDays").value=it.days||28;$("fDeadline").value=it.deadline?String(it.deadline).slice(0,10):"";$("fMethod").value=it.method||"store";$("fBuffer").value=it.buffer||5;$("fNotes").value=it.notes||"";
+    $("formTitle").textContent="Edit item";$("saveBtn").textContent="Save changes";$("cancelBtn").hidden=false;updateCalc();
+    $("f").scrollIntoView({behavior:"smooth"});
+  }
+};
+
+try{items=JSON.parse(localStorage.getItem("returns")||"[]")}catch(e){items=[]}
+resetForm(); render(); load();
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&!busy)load()});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
